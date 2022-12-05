@@ -1,0 +1,83 @@
+openapi: 3.0.1
+info:
+  title: API simulador de torneos de tennis
+  description: Se modela el comportamiento de un torneo de tenis
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:8000/api/v1/
+paths:
+  /players:
+    get:
+      tags: 
+          - Players
+      summary: Obtener todos los jugadores creados.
+      responses:
+        '200':
+          description: OK
+  /players/{id}:
+    get:
+      summary: Obtener jugador por id.
+      tags: 
+          - Players
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: Id del jugador.
+      responses:
+        '200':
+          description: OK
+  /tournaments:
+    get:
+      summary: Obtener todos los torneos simulados.
+      tags: 
+          - Tournaments
+      parameters:
+          - in: query
+            name: date
+            schema:
+              type: string
+            description: Formato de fecha 'yyyy-MM-dd'
+          - in: query
+            name: gender
+            schema:
+              type: string
+            description: Género del partido 'f' o 'm'
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Empezar torneo, retorna ganador.
+      tags: 
+          - Tournaments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tournaments'
+              example:
+                gender: f
+                amountPlayers: 8
+             
+      responses:
+        '201':
+          description: CREATED
+components:
+  schemas:    
+    Tournaments:
+      required: 
+        - gender
+      properties:
+        gender:
+          type: string
+          enum: 
+            - f
+            - m
+          example: m
+          description: Género del partido a simular
+        amountPlayers:
+          type: integer
+          description: Como el número de jugadores por género que se registran en la base de datos es 64, el simulador solo aceptará cantidad de jugadores hasta la 6ta potencia de dos. Ejemplo 2, 4, 8, 16, 32, 64
+          example: 8
