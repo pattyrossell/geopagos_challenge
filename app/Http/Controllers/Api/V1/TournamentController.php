@@ -41,6 +41,10 @@ class TournamentController extends Controller
     {
         $gender = $request->input("gender");
         $players = Player::select('id')->where("gender", $gender)->get();
+
+        if($request->amountPlayers)
+            $players = Player::select('id')->where("gender", $gender)->take($request->amountPlayers)->inRandomOrder()->get();
+
         $buildTournament = new TournamentGenerator($gender, $players);
         $champion = $buildTournament->getChampion();
         $tournament = new Tournament();

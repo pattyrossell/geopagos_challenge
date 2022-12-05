@@ -41,6 +41,9 @@ class TournamentGenerator
         $nextGames = collect();
         $champion = "";
         for($i = 1; $i <= $this->rounds; $i++){  
+            if($this->rounds == 1)
+                return $this->getWinnersRound($gamesSorted, true)->last()->last();
+
             $nextGames = $this->sortGames($nextGames);
             $lastRound = $i == $this->rounds ? true : false;
             $nextGames = $i == 1 ? $this->getWinnersRound($gamesSorted) : $this->getWinnersRound($nextGames);
