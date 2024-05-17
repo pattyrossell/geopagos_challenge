@@ -1,24 +1,24 @@
-<?php
+<?php 
 
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
-use App\Rules\PowerOfTwo;
 
-class TournamentStoreRequest extends FormRequest
+class TournamentIndexRequest extends FormRequest
 {
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array
-     */
+    public function authorize()
+    {
+        return true;
+    }
+
     public function rules()
     {
+        
         return [
-            'gender' => 'required|in:f,m',
-            'amountPlayers' => ['nullable', 'integer', new PowerOfTwo]
+            'gender' => 'nullable|in:f,m',
+            'date' => 'nullable|date_format:Y-m-d'
         ];
     }
 
@@ -33,8 +33,8 @@ class TournamentStoreRequest extends FormRequest
     public function messages()
     {
         return [
-            'gender.required' => 'Gender is required',
-            'gender.in' => 'Gender must be f or m'
+            'gender.in' => 'Gender must be f or m',
+            'date.data_format' => "The date doesn't match the format Y-m-d."
         ];
     }
 }

@@ -49,7 +49,7 @@ paths:
         '200':
           description: OK
     post:
-      summary: Empezar torneo, retorna ganador.
+      summary: Empezar torneo, retorna el ganador y los ids de los participantes del torneo.
       tags: 
           - Tournaments
       requestBody:

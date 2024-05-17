@@ -6,25 +6,42 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Player;
 use App\Http\Resources\PlayerResource;
+use App\Repositories\PlayerRepository;
 
 class PlayerController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * @var PlayerRepository
+     */
+    protected $playerRepository;
+
+    /**
+     * PlayerController constructor.
      *
-     * @return \Illuminate\Http\Response
+     * @param PlayerRepository $playerRepository Instance of PlayerRepository.
+     */
+    public function __construct(PlayerRepository $playerRepository)
+    {
+        $this->playerRepository = $playerRepository;
+    }
+
+    /**
+     * Display a listing of the players.
+     *
+     * @return PlayerResource A collection of Player resources.
      */
     public function index()
     {
-        return PlayerResource::collection(Player::get());
+        $players = $this->playerRepository->getAllPlayers();
+        return PlayerResource::collection($players);
     }
 
 
     /**
-     * Display the specified resource.
+     * Display the specified player.
      *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @param Player $player The player to display.
+     * @return PlayerResource The resource representing the player.
      */
     public function show(Player $player)
     {

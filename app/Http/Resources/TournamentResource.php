@@ -18,6 +18,7 @@ class TournamentResource extends JsonResource
             "idTournament" => $this->id,
             "gender" => $this->gender,
             "champion" => $this->champion,
+            "contestants" => $this->contestants,
             "name" => $this->player->name,
             "created_at" => $this->created_at
         ];

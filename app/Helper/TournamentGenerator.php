@@ -3,111 +3,118 @@
 namespace App\Helper;
 
 use App\Models\Player;
+use Illuminate\Support\Collection;
+use App\Factories\GameSimulatorFactory;
+use App\Interfaces\GameSimulatorInterface;
 
 class TournamentGenerator 
 {
+    /**
+     * @var Collection
+     */
     protected $players;
+
+    /**
+     * @var string
+     */
     protected $gender;
+
+    /**
+     * @var int
+     */
     protected $rounds;
+
+    /**
+     * @var int
+     */
     protected $totalPlayers;
 
-    public function __construct($gender, $players)
+    /**
+     * @var GameSimulatorInterface
+     */
+    protected $gameSimulator;
+
+    /**
+     * Constructor of the class.
+     *
+     * @param string $gender Gender of the players ('male' or 'female').
+     * @param Collection $players Collection of Player instances.
+     * @param GameSimulatorInterface $gameSimulator Instance of the game simulator.
+     */
+    public function __construct($gender, Collection $players, GameSimulatorInterface $gameSimulator)
     {
         $this->players = $players;
         $this->gender = $gender;
-        $this->totalPlayers = log($players->count());
+        $this->totalPlayers = log($players->count(), 2);
         $this->rounds = intval(round(log($players->count(), 2)));
+        $this->gameSimulator = $gameSimulator;
     }
 
+    /**
+     * Get the players participating in the tournament.
+     *
+     * @return Collection
+     */
     public function getPlayers()
     {
         return $this->players;
     }
 
+    /**
+     * Get the gender of the tournament.
+     *
+     * @return string
+     */
     public function getGender()
     {
         return $this->gender;
     }
 
+    /**
+     * Get the champion of the tournament.
+     *
+     * @return mixed
+     */
     public function getChampion()
     {
         return $this->buildTournament();
     }
 
-    public function buildTournament()
+    /**
+     * Build the tournament structure and determine the champion.
+     *
+     * @return mixed
+     */
+    protected function buildTournament()
     {
-        $games = $this->players->pluck('id')->chunk(2);
-        $gamesSorted = $this->sortGames($games);
-        $nextGames = collect();
-        $champion = "";
-        for($i = 1; $i <= $this->rounds; $i++){  
-            if($this->rounds == 1)
-                return $this->getWinnersRound($gamesSorted, true)->last()->last();
+        $games = $this->players->pluck('id')
+            ->chunk(2)
+            ->map(fn($group) => array_values($group->toArray()))
+            ->values();
 
-            $nextGames = $this->sortGames($nextGames);
-            $lastRound = $i == $this->rounds ? true : false;
-            $nextGames = $i == 1 ? $this->getWinnersRound($gamesSorted) : $this->getWinnersRound($nextGames);
-
-            if($i == $this->rounds-1){
-                $champion = $this->getWinnersRound($nextGames,$lastRound);
-            }
+        $nextGames = $games;
+        for ($round = 1; $round <= $this->rounds; $round++) {
+            $nextGames = $this->getWinnersRound($round == 1 ? $games : $nextGames);
         }
-        return $champion->last()->last();
+        return $nextGames->flatten()->first();
     }
 
-    public function getWinnersRound($games, $lastRound = false)
+    /**
+     * Get the winners of each round of the tournament.
+     *
+     * @param Collection $games Collection of games for a round.
+     * @return Collection
+     */
+    protected function getWinnersRound(Collection $games)
     {
-        $nextGames = [];
-        foreach ($games->toArray() as $key => $value) {
-            $winner = $this->getWinner($value[0], $value[1]);
-            array_push($nextGames, $winner);
-        }
-
-        $nextGames = collect($nextGames);
-        return $nextGames->pluck('id')->chunk(2);
-    }
-
-    public function getWinner($player1, $player2)
-    {
-        $player1 = Player::find($player1);
-        $pointsPlayer1 = $this->sumOfSkills($player1->skills);
-
-        $player2 = Player::find($player2);
-        $pointsPlayer2 = $this->sumOfSkills($player2->skills);
-
-        return $this->simulateGame($pointsPlayer1, $pointsPlayer2, $player1, $player2);
-    }
-    
-    public function sumOfSkills($skills)
-    {
-        $sum = 0;
-        foreach ($skills as $key) {
-            $sum = $sum + $key->pivot->level;
-        }
-        return $sum;
-    }
-    
-    public function simulateGame($pointsPlayer1, $pointsPlayer2, $player1, $player2)
-    {
-        if($pointsPlayer1 == $pointsPlayer2)
-            return $this->getWinnerByLuck($player1, $player2);
-        else
-            return $pointsPlayer1 > $pointsPlayer2 ? $player1 : $player2;
-    }
-
-    public function getWinnerByLuck($player1, $player2)
-    {
-        $luckPlayer1 = rand(1, 100);
-        $luckPlayer2 = rand(1, 100);
-        if($luckPlayer1 != $luckPlayer2)
-            return $luckPlayer1 > $luckPlayer2 ? $player1 : $player2;
-        else
-            return $this->getWinnerByLuck($player1, $player2);
-    }
-    
-    public function sortGames($games, $a =0){
-        return $games->map(function($chunk) {
-            return $chunk->values();
+        $winners = $games->map(function ($game) {
+            return $this->gameSimulator->simulate(
+                Player::find($game[0]),
+                Player::find($game[1])
+            )->id;
         });
+        return $winners->chunk(2)
+            ->map(fn($group) => array_values($group->toArray()))
+            ->values();
     }
 }

@@ -1,65 +1,61 @@
 <?php
-
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Http\Requests\TournamentStoreRequest;
-use App\Models\Player;
 use App\Models\Tournament;
-use App\Helper\TournamentGenerator;
+use App\Http\Requests\TournamentStoreRequest;
 use App\Http\Resources\TournamentResource;
-
+use App\Services\TournamentService;
+use App\Repositories\TournamentRepository;
+use App\Http\Requests\TournamentIndexRequest;
 class TournamentController extends Controller
 {
     /**
+     * @var TournamentService
+     */
+    protected $tournamentService;
+
+    /**
+     * @var TournamentRepository
+     */
+    protected $tournamentRepository;
+
+    public function __construct(TournamentRepository $tournamentRepository,TournamentService $tournamentService)
+    {
+        $this->tournamentRepository = $tournamentRepository;
+        $this->tournamentService = $tournamentService;
+    }
+
+    /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @param \App\Http\Requests\TournamentIndexRequest $request
+     * @return TournamentResource A collection of Player resources.
      */
-    public function index(Request $request)
+    public function index(TournamentIndexRequest $request)
     {
-        if($request->date && !$request->gender)
-            $tournaments = Tournament::where('created_at', "like", $request->date.'%' )->get();
-        elseif($request->gender && !$request->date)
-            $tournaments = Tournament::where('gender', $request->gender)->get();
-        elseif($request->date && $request->gender)
-            $tournaments = Tournament::where('created_at', "like", $request->date.'%')->where('gender', $request->gender)->get();
-        else
-            $tournaments = Tournament::get();
-
+        $tournaments = $this->tournamentRepository->getTournaments($request->date, $request->gender);
         return TournamentResource::collection($tournaments);
     }
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @param \App\Http\Requests\TournamentStoreRequest $request
+     * @return TournamentResource
      */
     public function store(TournamentStoreRequest $request)
     {
-        $gender = $request->input("gender");
-        $players = Player::select('id')->where("gender", $gender)->get();
-
-        if($request->amountPlayers)
-            $players = Player::select('id')->where("gender", $gender)->take($request->amountPlayers)->inRandomOrder()->get();
-
-        $buildTournament = new TournamentGenerator($gender, $players);
-        $champion = $buildTournament->getChampion();
-        $tournament = new Tournament();
-        $tournament->gender = $gender;
-        $tournament->champion = $champion;
-        $tournament->save();
-
+        $tournament = $this->tournamentService->createTournament($request->input("gender"), $request->input("amountPlayers"));
         return new TournamentResource($tournament);
     }
 
     /**
      * Display the specified resource.
      *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @param \App\Models\Tournament $tournament
+     * @return TournamentResource
      */
     public function show(Tournament $tournament)
     {
