@@ -1,4 +1,6 @@
-Ejecuar: 
+Ejecutar:
+<br>
+composer update
 <br>
 php artisan migrate --seed
 <br>
